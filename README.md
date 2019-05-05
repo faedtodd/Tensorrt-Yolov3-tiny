@@ -6,7 +6,11 @@
 
 device: nvidia tx2
 
-environment:  ubuntu18.04  tensorrt5.0.6.3  cuda10.0  cudnn7.3.1
+environment:  ubuntu18.04  
+              tensorrt5.0.6.3  
+              cuda10.0  
+              cudnn7.3.1  
+
 
 set input size and batch size
 
