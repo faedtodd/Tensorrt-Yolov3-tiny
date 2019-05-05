@@ -1,8 +1,8 @@
 # Tensorrt-Yolov3-tiny
 
-darknet.weights --> onnx.onnx --> tensorrt.trt
+    darknet.weights --> onnx.onnx --> tensorrt.trt
 
-sample from TensorRT-5.x.x.x/samples/python/yolov3_onnx/
+    sample from TensorRT-5.x.x.x/samples/python/yolov3_onnx/
 
 device: nvidia tx2
 
