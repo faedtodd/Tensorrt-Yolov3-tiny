@@ -1,8 +1,8 @@
 # Tensorrt-Yolov3-tiny
 
-# darknet.weights --> onnx.onnx --> tensorrt.trt
+darknet.weights --> onnx.onnx --> tensorrt.trt
 
-# performance on Tx2 with turn fp16 mode on:
+performance on Tx2 with turn fp16 mode on:
        
     input      batch size    inference time/ms
     416x416        1                9.5
