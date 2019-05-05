@@ -4,12 +4,15 @@
 
     sample from TensorRT-5.x.x.x/samples/python/yolov3_onnx/
 
-device: nvidia tx2
+## Environment
+device:  
+nvidia tx2
 
-environment:  ubuntu18.04  
-              tensorrt5.0.6.3  
-              cuda10.0  
-              cudnn7.3.1  
+environment:  
+ubuntu18.04  
+tensorrt5.0.6.3  
+cuda10.0  
+cudnn7.3.1  
 
 
 set input size and batch size
