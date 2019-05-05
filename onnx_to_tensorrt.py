@@ -50,6 +50,7 @@
 
 from __future__ import print_function
 
+import glob
 import time
 import numpy as np
 import tensorrt as trt
@@ -66,6 +67,7 @@ import common
 import wget
 
 TRT_LOGGER = trt.Logger()
+
 
 def draw_bboxes(image_raw, bboxes, confidences, categories, all_categories, bbox_color='blue'):
     """Draw the bounding boxes on the original input image and return it.
@@ -138,119 +140,91 @@ def main():
     """Create a TensorRT engine for ONNX-based YOLOv3-608 and run inference."""
 
     # Try to load a previously generated YOLOv3-608 network graph in ONNX format:
-    onnx_file_path = 'ped3_416_b16.onnx'
-    engine_file_path = "ped3_416_b16.trt"
+    input_size = 416
+    batch_size = 16
+    onnx_file_path = 'ped3_' + str(input_size) + '_b' + str(batch_size) + '.onnx'
+    engine_file_path = 'ped3_' + str(input_size) + '_b' + str(batch_size) + '.trt'
+    input_file_list = './ped_list.txt'
+    IMAGE_PATH = './images/'
+    save_path = './img_re/'
     
-    f_name1 = '1'
-    f_name2 = '2'
-    f_name3 = '3'
-    f_name4 = '4'
-    f_name5 = '5'
-    f_name6 = '6'
-    f_name7 = '7'
-    f_name8 = '8'
-    input_image_path1 = './image_PNG/'+ f_name1 + '.jpg'
-    input_image_path2 = './image_PNG/'+ f_name2 + '.jpg'
-    input_image_path3 = './image_PNG/'+ f_name3 + '.jpg'
-    input_image_path4 = './image_PNG/'+ f_name4 + '.jpg'
-    input_image_path5 = './image_PNG/'+ f_name5 + '.jpg'
-    input_image_path6 = './image_PNG/'+ f_name6 + '.jpg'
-    input_image_path7 = './image_PNG/'+ f_name7 + '.jpg'
-    input_image_path8 = './image_PNG/'+ f_name8 + '.jpg' 
+    output_shapes_416 = [(batch_size, 18, 13, 13), (batch_size, 18, 26, 26)]
+    output_shapes_480 = [(batch_size, 18, 15, 15), (batch_size, 18, 30, 30)]
+    output_shapes_544 = [(batch_size, 18, 17, 17), (batch_size, 18, 34, 34)]
+    output_shapes_608 = [(batch_size, 18, 19, 19), (batch_size, 18, 38, 38)]
+    output_shapes_dic = {'416': output_shapes_416, '480': output_shapes_480, '544': output_shapes_544, '608': output_shapes_608}
+    
+    with open(input_file_list, 'r') as f:
+        filenames = []
+        for line in f.readlines():
+            filenames.append(line.strip())
 
-    # Two-dimensional tuple with the target network's (spatial) input resolution in HW ordered
-    input_resolution_yolov3_HW = (416, 416)
-    # Create a pre-processor object by specifying the required input resolution for YOLOv3
+    # filenames = glob.glob(os.path.join(IMAGE_PATH, '*.jpg'))
+    
+    nums = len(filenames)
+    k = nums//batch_size
+    s = nums%batch_size
+    print(filenames)
+
+    input_resolution_yolov3_HW = (input_size, input_size)
+    
     preprocessor = PreprocessYOLO(input_resolution_yolov3_HW)
-    # Load an image from the specified input path, and return it together with  a pre-processed version
-    image_raw1, image1 = preprocessor.process(input_image_path1)
-    image_raw2, image2 = preprocessor.process(input_image_path2)
-    image_raw3, image3 = preprocessor.process(input_image_path3)
-    image_raw4, image4 = preprocessor.process(input_image_path4)
-    image_raw5, image5 = preprocessor.process(input_image_path5)
-    image_raw6, image6 = preprocessor.process(input_image_path6)
-    image_raw7, image7 = preprocessor.process(input_image_path7)
-    image_raw8, image8 = preprocessor.process(input_image_path8)
-    raw = []
-    raw.append(image_raw1)
-    raw.append(image_raw2)
-    raw.append(image_raw3)
-    raw.append(image_raw4)
-    raw.append(image_raw5)
-    raw.append(image_raw6)
-    raw.append(image_raw7)
-    raw.append(image_raw8)
-    raw.append(image_raw1)
-    raw.append(image_raw2)
-    raw.append(image_raw3)
-    raw.append(image_raw4)
-    raw.append(image_raw5)
-    raw.append(image_raw6)
-    raw.append(image_raw7)
-    raw.append(image_raw8)
-    raw.append(image_raw1)
-    raw.append(image_raw2)
-    raw.append(image_raw3)
-    raw.append(image_raw4)
-    raw.append(image_raw5)
-    raw.append(image_raw6)
-    raw.append(image_raw7)
-    raw.append(image_raw8)
-    raw.append(image_raw1)
-    raw.append(image_raw2)
-    raw.append(image_raw3)
-    raw.append(image_raw4)
-    raw.append(image_raw5)
-    raw.append(image_raw6)
-    raw.append(image_raw7)
-    raw.append(image_raw8)
-
-    image_all = np.concatenate((image1, image2, image3, image4, image5, image6, image7, image8, image1, image2, image3, image4, image5, image6, image7, image8, image1, image2, image3, image4, image5, image6, image7, image8, image1, image2, image3, image4, image5, image6, image7, image8), axis=0)
-    print(image1.shape)
-    print(image_all.shape)
-    # print(image)
-    # Store the shape of the original input image in WH format, we will need it for later
     
+    output_shapes = output_shapes_dic[str(input_size)]
 
-    # Output shapes expected by the post-processor
-    output_shapes = [(16, 18, 13, 13), (16, 18, 26, 26)]
-    # Do inference with TensorRT
-    trt_outputs = []
-    with get_engine(onnx_file_path, engine_file_path) as engine, engine.create_execution_context() as context:
-        inputs, outputs, bindings, stream = common.allocate_buffers(engine)
-        # Do inference
-        print('Running inference on image {}...'.format(input_image_path1))
-        # Set host input to the image. The common.do_inference function will copy the input to the GPU before executing.
-        inputs[0].host = image_all[:16]
-        t1 = time.time()
-        trt_outputs = common.do_inference(context, bindings=bindings, inputs=inputs, outputs=outputs, stream=stream)
-        t2 = time.time()
-        t_inf = t2 - t1
-        print(t_inf)
-        print(len(trt_outputs))
-
-    # Before doing post-processing, we need to reshape the outputs as the common.do_inference will give us flat arrays.
-    trt_outputs = [output.reshape(shape) for output, shape in zip(trt_outputs, output_shapes)]
-    print(len(trt_outputs))
-    postprocessor_args = {"yolo_masks": [(3, 4, 5), (0, 1, 2)],                    # A list of 3 three-dimensional tuples for the YOLO masks
+    postprocessor_args = {"yolo_masks": [(3, 4, 5), (0, 1, 2)],
                           "yolo_anchors": [(8,34),  (14,60),  (23,94),  (39,149),  (87,291),  (187,472)],
-                          "obj_threshold": 0.1,                                               # Threshold for object coverage, float value between 0 and 1
-                          "nms_threshold": 0.3,                                               # Threshold for non-max suppression algorithm, float value between 0 and 1
+                          "obj_threshold": 0.1,
+                          "nms_threshold": 0.3,
                           "yolo_input_resolution": input_resolution_yolov3_HW}
 
     postprocessor = PostprocessYOLO(**postprocessor_args)
+    
+    # Do inference with TensorRT
+    filenames_batch = []
+    images = []
+    images_raw = []
+    trt_outputs = []
+    index = 0
+    with get_engine(onnx_file_path, engine_file_path) as engine, engine.create_execution_context() as context:
+        # inputs, outputs, bindings, stream = common.allocate_buffers(engine)
+        # Do inference
+        for filename in filenames:
+            filenames_batch.append(filename)
+            image_raw, image = preprocessor.process(filename)
+            images_raw.append(image_raw)
+            images.append(image)
+            index += 1
+            if index != nums and len(images_raw) != batch_size:
+                continue
+            inputs, outputs, bindings, stream = common.allocate_buffers(engine)
+            images_batch = np.concatenate(images, axis=0)
+            inputs[0].host = images_batch
+            t1 = time.time()
+            trt_outputs = common.do_inference(context, bindings=bindings, inputs=inputs, outputs=outputs, stream=stream)
+            t2 = time.time()
+            t_inf = t2 - t1
+            print(t_inf)
+            print(len(trt_outputs))
+            trt_outputs = [output.reshape(shape) for output, shape in zip(trt_outputs, output_shapes)]
 
-    # Run the post-processing algorithms on the TensorRT outputs and get the bounding box details of detected objects
-    print('test')
-    for i in range(16):
-        img_raw = raw[i]
-        shape_orig_WH = img_raw.size
-        boxes, classes, scores = postprocessor.process(trt_outputs, (shape_orig_WH), i)
-        # Draw the bounding boxes onto the original input image and save it as a PNG file
-        obj_detected_img = draw_bboxes(img_raw, boxes, scores, classes, ALL_CATEGORIES)
-        output_image_path = str(i+1) + '_416_bboxes.png'
-        obj_detected_img.save(output_image_path, 'PNG')
-        print('Saved image with bounding boxes of detected objects to {}.'.format(output_image_path))
+	    print('test')
+	    for i in range(len(filenames_batch)):
+                fname = filenames_batch[i].split('/')
+                fname = fname[-1].split('.')[0]
+		img_raw = images_raw[i]
+		shape_orig_WH = img_raw.size
+		boxes, classes, scores = postprocessor.process(trt_outputs, (shape_orig_WH), i)
+		# Draw the bounding boxes onto the original input image and save it as a PNG file
+		obj_detected_img = draw_bboxes(img_raw, boxes, scores, classes, ALL_CATEGORIES)
+		output_image_path = save_path + fname + '_' + str(input_size) + '_bboxes.png'
+		obj_detected_img.save(output_image_path, 'PNG')
+		print('Saved image with bounding boxes of detected objects to {}.'.format(output_image_path))
+            filenames_batch = []
+            images_batch = []
+	    images = []
+	    images_raw = []
+	    trt_outputs = []
 
 if __name__ == '__main__':
     main()
