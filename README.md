@@ -14,10 +14,14 @@ tensorrt5.0.6.3
 cuda10.0  
 cudnn7.3.1  
 
+## How to use
+### set input size and batch size
+    set labels: line14,line19|data_processing.py
+    set batch_size: batch|xxx.cfg, line146|common.py, line362|yolov3_to_onnx.py, line145|onnx_to_tensorrt.py
+    set input_size: input|xxx.cfg, line144|onnx_to_tensorrt.py
+    set mode: line143|onnx_to_tensorrt.py
 
-set input size and batch size
-
-performance on Tx2 with turn fp16 mode on:
+## performance on Tx2 with turn fp16 mode on:
        
     input      batch size    inference time/ms
     416x416        1                9.5
