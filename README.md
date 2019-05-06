@@ -17,9 +17,10 @@ cudnn7.3.1
 ## How to use
 ### set input size and batch size
     set labels: line14,line19|data_processing.py
-    set batch_size: batch|xxx.cfg, line146|common.py, line362|yolov3_to_onnx.py, line145|onnx_to_tensorrt.py
-    set input_size: input|xxx.cfg, line144|onnx_to_tensorrt.py
-    set mode: line143|onnx_to_tensorrt.py
+    set output_layers: line723|yolov3_to_onnx.py
+    set batch_size: batch|xxx.cfg, line62|yolov3_to_onnx.py, line140|onnx_to_tensorrt.py
+    set input_size: input|xxx.cfg, line63|yolov3_to_onnx.py, line139|onnx_to_tensorrt.py
+    set mode: line141|onnx_to_tensorrt.py
 
 ## performance on Tx2 with turn fp16 mode on:
        
