@@ -57,14 +57,10 @@ import tensorrt as trt
 import pycuda.driver as cuda
 import pycuda.autoinit
 from PIL import ImageDraw
-
-# from yolov3_to_onnx import download_file
 from data_processing import PreprocessYOLO, PostprocessYOLO, ALL_CATEGORIES
 
 import sys, os
-sys.path.insert(1, os.path.join(sys.path[0], ".."))
 import common
-import wget
 
 TRT_LOGGER = trt.Logger()
 
@@ -97,14 +93,14 @@ def draw_bboxes(image_raw, bboxes, confidences, categories, all_categories, bbox
 
     return image_raw
 
-def get_engine(onnx_file_path, engine_file_path=""):
+def get_engine(onnx_file_path, max_batch_size, fp16_on, engine_file_path=""):
     """Attempts to load a serialized engine if available, otherwise builds a new TensorRT engine and saves it."""
     def build_engine():
         """Takes an ONNX file and creates a TensorRT engine to run inference with"""
         with trt.Builder(TRT_LOGGER) as builder, builder.create_network() as network, trt.OnnxParser(network, TRT_LOGGER) as parser:
             builder.max_workspace_size = 1 << 30 # 1GB
-            builder.max_batch_size = 1
-            builder.fp16_mode = True
+            builder.max_batch_size = max_batch_size
+            builder.fp16_mode = fp16_on
             # Parse model file
             if not os.path.exists(onnx_file_path):
                 print('ONNX file {} not found, please run yolov3_to_onnx.py first to generate it.'.format(onnx_file_path))
@@ -140,10 +136,11 @@ def main():
     """Create a TensorRT engine for ONNX-based YOLOv3-608 and run inference."""
 
     # Try to load a previously generated YOLOv3-608 network graph in ONNX format:
-    input_size = 416
+    input_size = 608
     batch_size = 1
-    onnx_file_path = 'ped-tinyer_' + str(input_size) + '_' + str(batch_size) + '.onnx'
-    engine_file_path = 'ped-tinyer_' + str(input_size) + '_' + str(batch_size) + '.trt'
+    fp16_on = True
+    onnx_file_path = 'ped3_' + str(input_size) + '_' + str(batch_size) + '.onnx'
+    engine_file_path = 'ped3_' + str(input_size) + '_' + str(batch_size) + '.trt'
     input_file_list = './ped_list.txt'
     IMAGE_PATH = './images/'
     save_path = './img_re/'
@@ -162,9 +159,7 @@ def main():
     # filenames = glob.glob(os.path.join(IMAGE_PATH, '*.jpg'))
     
     nums = len(filenames)
-    k = nums//batch_size
-    s = nums%batch_size
-    print(filenames)
+    # print(filenames)
 
     input_resolution_yolov3_HW = (input_size, input_size)
     
@@ -186,7 +181,7 @@ def main():
     images_raw = []
     trt_outputs = []
     index = 0
-    with get_engine(onnx_file_path, engine_file_path) as engine, engine.create_execution_context() as context:
+    with get_engine(onnx_file_path, batch_size, fp16_on, engine_file_path) as engine, engine.create_execution_context() as context:
         # inputs, outputs, bindings, stream = common.allocate_buffers(engine)
         # Do inference
         for filename in filenames:
@@ -201,7 +196,7 @@ def main():
             images_batch = np.concatenate(images, axis=0)
             inputs[0].host = images_batch
             t1 = time.time()
-            trt_outputs = common.do_inference(context, bindings=bindings, inputs=inputs, outputs=outputs, stream=stream)
+            trt_outputs = common.do_inference(context, bindings=bindings, inputs=inputs, outputs=outputs, stream=stream, batch_size=batch_size)
             t2 = time.time()
             t_inf = t2 - t1
             print(t_inf)
