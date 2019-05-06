@@ -103,7 +103,7 @@ def get_engine(onnx_file_path, engine_file_path=""):
         """Takes an ONNX file and creates a TensorRT engine to run inference with"""
         with trt.Builder(TRT_LOGGER) as builder, builder.create_network() as network, trt.OnnxParser(network, TRT_LOGGER) as parser:
             builder.max_workspace_size = 1 << 30 # 1GB
-            builder.max_batch_size = 16
+            builder.max_batch_size = 1
             builder.fp16_mode = True
             # Parse model file
             if not os.path.exists(onnx_file_path):
@@ -141,9 +141,9 @@ def main():
 
     # Try to load a previously generated YOLOv3-608 network graph in ONNX format:
     input_size = 416
-    batch_size = 16
-    onnx_file_path = 'ped3_' + str(input_size) + '_b' + str(batch_size) + '.onnx'
-    engine_file_path = 'ped3_' + str(input_size) + '_b' + str(batch_size) + '.trt'
+    batch_size = 1
+    onnx_file_path = 'ped-tinyer_' + str(input_size) + '_' + str(batch_size) + '.onnx'
+    engine_file_path = 'ped-tinyer_' + str(input_size) + '_' + str(batch_size) + '.trt'
     input_file_list = './ped_list.txt'
     IMAGE_PATH = './images/'
     save_path = './img_re/'
